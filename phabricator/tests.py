@@ -11,34 +11,14 @@ RESPONSES = {
 
 class PhabricatorTest(unittest.TestCase):
     def setUp(self):
-        self.api = phabricator.Phabricator(username='test', certificate='test', host='http://localhost')
-        self.api.certificate = "fdhcq3zsyijnm4h6gmh43zue5umsmng5t4dlwodvmiz4cnc6fl6f" + \
-                               "zrvjbfg2ftktrcddan7b3xtgmfge2afbrh4uwam6pfxpq5dbkhbl" + \
-                               "6mgaijdzpq5efw2ynlnjhoeqyh6dakl4yg346gbhabzkcxreu7hc" + \
-                               "jhw6vo6wwa7ky2sjdk742khlgsakwtme6sr2dfkhlxxkcqw3jngy" + \
-                               "rq5zj7m6m7hnscuzlzsviawnvg47pe7l4hxiexpbb5k456r"
-
-    def test_generate_hash(self):
-        token = '12345678'
-        hashed = self.api.generate_hash(token)
-        self.assertEquals(hashed, 'f8d3bea4e58a2b2967d93d5b307bfa7c693b2e7f')
-
-    @patch('phabricator.httplib.HTTPConnection')
-    def test_connect(self, mock_connection):
-        mock = mock_connection.return_value = Mock()
-        mock.getresponse.return_value = StringIO(RESPONSES['conduit.connect'])
-
-        api = phabricator.Phabricator(username='test', certificate='test', host='http://localhost')
-        api.connect()
-        self.assertTrue('sessionKey' in api.conduit.keys())
-        self.assertTrue('connectionID' in api.conduit.keys())
+        self.api = phabricator.Phabricator(token='test', host='http://localhost')
 
     @patch('phabricator.httplib.HTTPConnection')
     def test_user_whoami(self, mock_connection):
         mock = mock_connection.return_value = Mock()
         mock.getresponse.return_value = StringIO(RESPONSES['user.whoami'])
 
-        api = phabricator.Phabricator(username='test', certificate='test', host='http://localhost')
+        api = phabricator.Phabricator(token='test', host='http://localhost')
         api.conduit = True
 
         self.assertEqual('testaccount', api.user.whoami()['userName'])
@@ -48,7 +28,7 @@ class PhabricatorTest(unittest.TestCase):
         mock = mock_connection.return_value = Mock()
         mock.getresponse.return_value = StringIO(RESPONSES['maniphest.find'])
 
-        api = phabricator.Phabricator(username='test', certificate='test', host='http://localhost')
+        api = phabricator.Phabricator(token='test', host='http://localhost')
         api.conduit = True
 
         result = api.maniphest.find(ownerphids=["PHID-USER-5022a9389121884ab9db"])

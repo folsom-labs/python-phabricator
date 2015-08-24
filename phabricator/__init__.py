@@ -257,15 +257,6 @@ class Resource(object):
         if conduit:
             # Already authenticated, add session key to json data
             kwargs['__conduit__'] = conduit
-        elif self.method == 'conduit' and self.endpoint == 'connect':
-            # Not authenticated, requesting new session key
-            token = str(int(time.time()))
-            kwargs['authToken'] = token
-            kwargs['authSignature'] = self.api.generate_hash(token)
-        else:
-            # Authorization is required, silently auth the user
-            self.api.connect()
-            kwargs['__conduit__'] = self.api.conduit
 
         url = urlparse.urlparse(self.api.host)
         if url.scheme == 'https':
@@ -308,41 +299,28 @@ class Phabricator(Resource):
         'json': lambda x: json.loads(x),
     }
 
-    def __init__(self, username=None, certificate=None, host=None,
+    def __init__(self, token=None, host=None,
             timeout=5, response_format='json', **kwargs):
 
         # Set values in ~/.arcrc as defaults
         if ARCRC:
             self.host = host if host else ARCRC['hosts'].keys()[0]
-            self.username = username if username else ARCRC['hosts'][self.host]['user']
-            self.certificate = certificate if certificate else ARCRC['hosts'][self.host]['cert']
+            self.token = token if token else ARCRC['hosts'][self.host]['token']
         else:
             self.host = host
-            self.username = username
-            self.certificate = certificate
+            self.token = token
 
         self.timeout = timeout
         self.response_format = response_format
         self.client = 'python-phabricator'
         self.clientVersion = 1
         self.clientDescription = socket.gethostname() + ':python-phabricator'
-        self.conduit = None
+        self.conduit = {'token': self.token}
 
         super(Phabricator, self).__init__(self)
 
     def _request(self, **kwargs):
         raise SyntaxError('You cannot call the Conduit API without a resource.')
-
-    def connect(self):
-        auth = Resource(api=self, method='conduit', endpoint='connect')
-
-        response = auth(user=self.username, host=self.host,
-                client=self.client, clientVersion=self.clientVersion)
-
-        self.conduit = {
-            'sessionKey': response.sessionKey,
-            'connectionID': response.connectionID
-        }
 
     def generate_hash(self, token):
         return hashlib.sha1(token + self.api.certificate).hexdigest()
